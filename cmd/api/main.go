@@ -5,9 +5,9 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
-	"net/http"
+	_ "github.com/lib/pq"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -25,6 +25,7 @@ type config struct {
 type application struct {
 	config config
 	logger *jsonlog.Logger
+	wg     sync.WaitGroup
 }
 
 func main() {
@@ -33,7 +34,8 @@ func main() {
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:elaman(2004)@@localhost/greenlight", "PostgreSQL DSN")
+	// $env:DSN="postgres://postgres:elaman(2004)@@localhost:5432/nexusnet?sslmode=disable"
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:elaman(2004)@@localhost/nexusnet?sslmode=disable", "PostgreSQL DSN")
 
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
@@ -57,16 +59,7 @@ func main() {
 		logger: logger,
 	}
 
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
-	}
-
-	logger.Print("starting %s server on %s", cfg.env, srv.Addr)
-	err := srv.ListenAndServe()
+	err = app.serve()
 	if err != nil {
 		logger.PrintFatal(err, nil)
 	}
