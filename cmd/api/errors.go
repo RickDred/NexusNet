@@ -5,6 +5,11 @@ import (
 	"net/http"
 )
 
+func (app *application) noAccessRights(w http.ResponseWriter, r *http.Request) {
+	message := "You can't change a post that isn't yours"
+	app.errorResponse(w, r, http.StatusUnauthorized, message)
+}
+
 func (app *application) invalidCredentialsResponse(w http.ResponseWriter, r *http.Request) {
 	message := "invalid authentication credentials"
 	app.errorResponse(w, r, http.StatusUnauthorized, message)

@@ -7,27 +7,27 @@ import (
 	"time"
 )
 
-type Storie struct {
+type Story struct {
 	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"-"`
 	AuthorID  int64     `json:"author_id"`
 	Visible   bool      `json:"visible"`
 	Content   string    `json:"content"`
 }
-type StorieModel struct {
+type StoryModel struct {
 	DB *sql.DB
 }
 
-func (s StorieModel) Insert(storie *Storie) error {
+func (s StoryModel) Insert(story *Story) error {
 	query := `
-		INSERT INTO stories(content)
-		VALUES ($1)
-		RETURNING id, created_at, updated_at, content, author_id`
+		INSERT INTO stories(content, author_id, created_at)
+		VALUES ($1, $2, NOW())
+		RETURNING id`
 
-	return s.DB.QueryRow(query, &storie.Content).Scan(&storie.ID, &storie.CreatedAt, &storie.AuthorID)
+	return s.DB.QueryRow(query, &story.Content, &story.AuthorID).Scan(&story.ID)
 }
 
-func (s StorieModel) Get(id int64) (*Storie, error) {
+func (s StoryModel) Get(id int64) (*Story, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
@@ -37,9 +37,9 @@ func (s StorieModel) Get(id int64) (*Storie, error) {
 		FROM stories
 		WHERE id = $1`
 
-	var storie Storie
+	var story Story
 
-	err := s.DB.QueryRow(query, id).Scan(&storie.ID, &storie.CreatedAt, &storie.AuthorID)
+	err := s.DB.QueryRow(query, id).Scan(&story.ID, &story.CreatedAt, &story.AuthorID)
 
 	if err != nil {
 		switch {
@@ -50,10 +50,10 @@ func (s StorieModel) Get(id int64) (*Storie, error) {
 		}
 	}
 
-	return &storie, nil
+	return &story, nil
 }
 
-func (p StorieModel) Delete(id int64) error {
+func (p StoryModel) Delete(id int64) error {
 	if id < 1 {
 		return ErrRecordNotFound
 	}
@@ -79,7 +79,7 @@ func (p StorieModel) Delete(id int64) error {
 	return nil
 }
 
-func (s StorieModel) GetAllFromUser(authorID int) ([]*Storie, error) {
+func (s StoryModel) GetAllFromUser(authorID int) ([]*Story, error) {
 	query := `
 		SELECT id, created_at, author_id, content
 		FROM stories
@@ -96,20 +96,20 @@ func (s StorieModel) GetAllFromUser(authorID int) ([]*Storie, error) {
 
 	defer rows.Close()
 
-	var stories []*Storie
+	var stories []*Story
 
 	for rows.Next() {
-		var storie Storie
+		var story Story
 		err := rows.Scan(
-			&storie.ID,
-			&storie.CreatedAt,
-			&storie.AuthorID,
-			&storie.Content,
+			&story.ID,
+			&story.CreatedAt,
+			&story.AuthorID,
+			&story.Content,
 		)
 		if err != nil {
 			return nil, err
 		}
-		stories = append(stories, &storie)
+		stories = append(stories, &story)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err

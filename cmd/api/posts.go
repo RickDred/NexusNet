@@ -138,6 +138,7 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 		app.notFoundResponse(w, r)
 		return
 	}
+
 	// Retrieve the movie record as normal.
 	post, err := app.models.Posts.Get(id)
 	if err != nil {
@@ -154,6 +155,17 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 		Title       *string `json:"title"`
 		Description *string `json:"description"`
 	}
+
+	user := app.contextGetUser(r)
+	if user.IsAnonymous() {
+		app.authenticationRequiredResponse(w, r)
+		return
+	}
+	if post.AuthorID != user.ID {
+		app.noAccessRights(w, r)
+		return
+	}
+
 	// Decode the JSON as normal.
 	err = app.readJSON(w, r, &input)
 	if err != nil {
