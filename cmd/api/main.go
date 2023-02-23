@@ -1,7 +1,9 @@
 package main
 
 import (
+	"NexusNet/internal/data"
 	"NexusNet/internal/jsonlog"
+	"NexusNet/internal/mailer"
 	"context"
 	"database/sql"
 	"flag"
@@ -20,11 +22,25 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  string
 	}
+	limiter struct {
+		rps     float64
+		burst   int
+		enabled bool
+	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 type application struct {
 	config config
 	logger *jsonlog.Logger
+	models data.Models // hold new models in app
+	mailer mailer.Mailer
 	wg     sync.WaitGroup
 }
 
@@ -40,6 +56,12 @@ func main() {
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max connection idle time")
+
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.gmail.com", "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 587, "SMTP port")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", "newakkism@gmail.com", "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", "lokpjmdbheicowid", "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "newakkism@gmail.com", "SMTP sender")
 
 	flag.Parse()
 
@@ -57,6 +79,8 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
+		models: data.NewModels(db),
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
 	err = app.serve()

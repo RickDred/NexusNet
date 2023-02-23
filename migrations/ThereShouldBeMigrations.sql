@@ -3,9 +3,8 @@ CREATE TABLE IF NOT EXISTS posts(
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     author_id bigint NOT NULL REFERENCES users ON DELETE CASCADE,
     title text NOT NULL,
-    updated_at  timestamp(0) with time zone NOT NULL,
-    description text NOT NULL,
-    image varbinary(max)
+    updated_at  timestamp(0) with time zone NOT NULL DEFAULT NOW(),
+    description text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -16,8 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     role text NOT NULL,
     password_hash bytea NOT NULL,
     activated bool NOT NULL,
-    description text,
-    image varbinary(max)
+    description text
 );
 
 CREATE TABLE IF NOT EXISTS tokens (
@@ -27,7 +25,7 @@ CREATE TABLE IF NOT EXISTS tokens (
     scope text NOT NULL
 );
 
-СREATE TABLE IF NOT EXISTS comments(
+CREATE TABLE IF NOT EXISTS comments(
     id bigserial PRIMARY KEY,
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     author_id bigint NOT NULL REFERENCES users ON DELETE CASCADE,
@@ -36,11 +34,11 @@ CREATE TABLE IF NOT EXISTS tokens (
     updated_at timestamp(0) with time zone NOT NULL
 );
 
-СREATE TABLE IF NOT EXISTS stories(
+CREATE TABLE IF NOT EXISTS stories(
     id bigserial PRIMARY KEY,
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     author_id bigint NOT NULL REFERENCES users ON DELETE CASCADE,
-    content text,
-    image varbinary(max)
+    content text NOT NULL,
+    visible boolean NOT NULL
 );
 
