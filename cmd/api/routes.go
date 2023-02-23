@@ -24,7 +24,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodDelete, "/posts/:id", app.requireAuthenticatedUser(app.deletePostHandler))
 	router.HandlerFunc(http.MethodGet, "/posts/:id", app.showPostHandler)
 
-	return app.recoverPanic(app.rateLimit(router))
+	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
 }
 
 //import (

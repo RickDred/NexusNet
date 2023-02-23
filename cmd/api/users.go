@@ -249,48 +249,34 @@ func (app *application) showUserHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
-	if err != nil {
-		app.notFoundResponse(w, r)
-		return
-	}
 
-	user, err := app.models.Users.GetForToken(id)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
-		return
-	}
+	user := app.contextGetUser(r)
 
 	var input struct {
-		Title       *string `json:"title"`
+		Name        *string `json:"name"`
 		Description *string `json:"description"`
 	}
 
-	err = app.readJSON(w, r, &input)
+	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	if input.Title != nil {
-		post.Title = *input.Title
+	if input.Name != nil {
+		user.Name = *input.Name
 	}
 
 	if input.Description != nil {
-		post.Description = *input.Description
+		user.Description = *input.Description
 	}
 
-	err = app.models.Posts.Update(post)
+	err = app.models.Users.Update(user)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"post": post}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

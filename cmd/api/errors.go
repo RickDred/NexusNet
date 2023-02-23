@@ -23,6 +23,15 @@ func (app *application) logError(r *http.Request, err error) {
 	})
 }
 
+func (app *application) authenticationRequiredResponse(w http.ResponseWriter, r *http.Request) {
+	message := "you must be authenticated to access this resource"
+	app.errorResponse(w, r, http.StatusUnauthorized, message)
+}
+func (app *application) inactiveAccountResponse(w http.ResponseWriter, r *http.Request) {
+	message := "your user account must be activated to access this resource"
+	app.errorResponse(w, r, http.StatusForbidden, message)
+}
+
 // The errorResponse() method is a generic helper for sending JSON-formatted error
 // messages to the client with a given status code. CHANGE "interface" to "any" if go version is 1.18 or newer
 func (app *application) errorResponse(w http.ResponseWriter, r *http.Request, status int, message interface{}) {
