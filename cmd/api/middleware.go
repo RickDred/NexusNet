@@ -4,12 +4,13 @@ import (
 	"NexusNet/internal/data"
 	"NexusNet/internal/validator"
 	"fmt"
-	"golang.org/x/time/rate"
 	"net"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
