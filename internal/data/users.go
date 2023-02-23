@@ -215,10 +215,11 @@ func (u UserModel) Get(id int64) (*User, error) {
 		&user.ID,
 		&user.CreatedAt,
 		&user.Name,
-		&user.Description,
+		&user.Email,
 		&user.Role,
+		&user.Password.hash,
 		&user.Activated,
-	)
+		&user.Description)
 
 	if err != nil {
 		switch {

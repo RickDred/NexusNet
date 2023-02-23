@@ -28,10 +28,12 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/users/:id/stories/:story_id", app.requireActivatedUser(app.showStoryHandler))
 	router.HandlerFunc(http.MethodGet, "/users/:id/stories", app.requireActivatedUser(app.listUserStoriesHandler))
 	router.HandlerFunc(http.MethodDelete, "/users/:id/stories/:story_id", app.requireActivatedUser(app.deleteStorieHandler))
-	router.HandlerFunc(http.MethodPost, "/stories/create", app.requireActivatedUser(app.createStoryHandler))
+	router.HandlerFunc(http.MethodPost, "/stories", app.requireActivatedUser(app.createStoryHandler))
 
 	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
 }
+
+// 2MICW67VDEHGMOQS5TEUX5MCZU
 
 //import (
 //	"net/http"
