@@ -15,10 +15,10 @@ var (
 // Models struct which wraps the MovieModel
 // kind of enveloping
 type Models struct {
-	Users  UserModel
-	Posts  PostModel
-	Tokens TokenModel
-	Story  StoryModel
+	Users   UserModel
+	Posts   PostModel
+	Tokens  TokenModel
+	Stories StoryModel
 }
 
 // NewModels method which returns a Models struct containing the initialized MovieModel.

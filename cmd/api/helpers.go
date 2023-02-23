@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -25,6 +24,15 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
 	if err != nil || id < 1 {
 		return 0, errors.New("invalid id parameter")
+	}
+	return id, nil
+}
+
+func (app *application) readStoryIDParam(r *http.Request) (int64, error) {
+	params := httprouter.ParamsFromContext(r.Context())
+	id, err := strconv.ParseInt(params.ByName("story_id"), 10, 64)
+	if err != nil || id < 1 {
+		return 0, errors.New("invalid story id parameter")
 	}
 	return id, nil
 }
@@ -121,16 +129,16 @@ func (app *application) readString(qs url.Values, key string, defaultValue strin
 // The readCSV() helper reads a string value from the query string and then splits it
 // into a slice on the comma character. If no matching key could be found, it returns
 // the provided default value.
-func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
-	// Extract the value from the query string.
-	csv := qs.Get(key)
-	// If no key exists (or the value is empty) then return the default value.
-	if csv == "" {
-		return defaultValue
-	}
-	// Otherwise parse the value into a []string slice and return it.
-	return strings.Split(csv, ",")
-}
+// func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
+// 	// Extract the value from the query string.
+// 	csv := qs.Get(key)
+// 	// If no key exists (or the value is empty) then return the default value.
+// 	if csv == "" {
+// 		return defaultValue
+// 	}
+// 	// Otherwise parse the value into a []string slice and return it.
+// 	return strings.Split(csv, ",")
+// }
 
 // The readInt() helper reads a string value from the query string and converts it to an
 // integer before returning. If no matching key could be found it returns the provided

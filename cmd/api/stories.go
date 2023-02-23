@@ -8,14 +8,19 @@ import (
 	"net/http"
 )
 
-func (app *application) createStorieHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) createStoryHandler(w http.ResponseWriter, r *http.Request) {
 	//Declare an anonymous struct to hold the information that we expect to be in the
 	// HTTP request body (note that the field names and types in the struct are a subset
 	// of the Movie struct that we created earlier). This struct will be our *target
 	// decode destination*.
 	var input struct {
-		ID       int64 `json:"id"`
-		AuthorID int64 `json:"author_id"`
+		Content string `json:"content"`
+	}
+
+	user := app.contextGetUser(r)
+	if user.IsAnonymous() {
+		app.authenticationRequiredResponse(w, r)
+		return
 	}
 
 	// if there is error with decoding, we are sending corresponding message
@@ -24,69 +29,54 @@ func (app *application) createStorieHandler(w http.ResponseWriter, r *http.Reque
 		app.errorResponse(w, r, http.StatusBadRequest, err.Error())
 	}
 
-	storie := &data.Storie{
-		ID:       input.ID,
-		AuthorID: input.AuthorID,
+	story := &data.Story{
+		AuthorID: user.ID,
+		Content:  input.Content,
 	}
 
-	err = app.models.Story.Insert(storie)
+	err = app.models.Stories.Insert(story)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
 	headers := make(http.Header)
-	headers.Set("Location", fmt.Sprintf("/stories/%d", storie.ID))
+	headers.Set("Location", fmt.Sprintf("/stories/%d", story.ID))
 
-	err = app.writeJSON(w, http.StatusCreated, envelope{"storie": storie}, headers)
+	err = app.writeJSON(w, http.StatusCreated, envelope{"story": story}, headers)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
-func (app *application) listStoriesHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) listUserStoriesHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Title      string
-		AuthorID   int
-		AuthorName string
-		Page       int
-		PageSize   int
-		data.Filters
+		AuthorID int
 	}
 
 	v := validator.New()
-
 	qs := r.URL.Query()
-	input.Title = app.readString(qs, "title", "")
+
 	input.AuthorID = app.readInt(qs, "author_id", 0, v)
-	input.AuthorName = app.readString(qs, "author_name", "")
 
-	input.Filters.Page = app.readInt(qs, "page", 1, v)
-	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
-
-	input.Filters.SortSafelist = []string{"title", "id", "-title", "-id", "author_id", "-author_id", "author_name", "-author_name"}
-
-	input.Filters.Sort = app.readString(qs, "sort", "id")
-
-	stories, _, err := app.models.Story.GetAll(input.Title, input.AuthorID, input.AuthorName, input.Filters)
+	stories, err := app.models.Stories.GetAllFromUser(input.AuthorID)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	// Send a JSON response containing the movie data.
 	err = app.writeJSON(w, http.StatusOK, envelope{"stories": stories}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
-func (app *application) showStorieHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+func (app *application) showStoryHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readStoryIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 	}
 
-	post, err := app.models.Posts.Get(id)
+	story, err := app.models.Stories.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -98,7 +88,7 @@ func (app *application) showStorieHandler(w http.ResponseWriter, r *http.Request
 	}
 	// Encode the struct to JSON and send it as the HTTP response.
 	// using envelope
-	err = app.writeJSON(w, http.StatusOK, envelope{"stories": post}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"story": story}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -112,7 +102,7 @@ func (app *application) deleteStorieHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = app.models.Posts.Delete(id)
+	err = app.models.Stories.Delete(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -123,58 +113,9 @@ func (app *application) deleteStorieHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"message": "storie successfully deleted"}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": "story successfully deleted"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 
-}
-
-func (app *application) updateStorieHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
-	if err != nil {
-		app.notFoundResponse(w, r)
-		return
-	}
-	// Retrieve the movie record as normal.
-	post, err := app.models.Posts.Get(id)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
-		return
-	}
-	// Use pointers for the Title, Year and Runtime fields.
-	var input struct {
-		Title    *string `json:"title"`
-		AuthorID *string `json:"author_id"`
-	}
-	// Decode the JSON as normal.
-	err = app.readJSON(w, r, &input)
-	if err != nil {
-		app.badRequestResponse(w, r, err)
-		return
-	}
-
-	if input.Title != nil {
-		post.Title = *input.Title
-	}
-	// We also do the same for the other fields in the input struct.
-	//v := validator.New()
-	//if data.ValidatePost(v, movie); !v.Valid() {
-	//	app.failedValidationResponse(w, r, v.Errors)
-	//	return
-	//}
-	err = app.models.Posts.Update(post)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"post": post}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
 }

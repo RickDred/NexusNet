@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/julienschmidt/httprouter"
 	"net/http"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 func (app *application) routes() http.Handler {
@@ -23,6 +24,11 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/posts/:id", app.requireActivatedUser(app.updatePostHandler))
 	router.HandlerFunc(http.MethodDelete, "/posts/:id", app.requireActivatedUser(app.deletePostHandler))
 	router.HandlerFunc(http.MethodGet, "/posts/:id", app.showPostHandler)
+
+	router.HandlerFunc(http.MethodGet, "/users/:id/stories/:story_id", app.requireActivatedUser(app.showStoryHandler))
+	router.HandlerFunc(http.MethodGet, "/users/:id/stories", app.requireActivatedUser(app.listUserStoriesHandler))
+	router.HandlerFunc(http.MethodDelete, "/users/:id/stories/:story_id", app.requireActivatedUser(app.deleteStorieHandler))
+	router.HandlerFunc(http.MethodPost, "/stories/create", app.requireActivatedUser(app.createStoryHandler))
 
 	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
 }
