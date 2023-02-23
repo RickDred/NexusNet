@@ -7,10 +7,13 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	_ "github.com/lib/pq"
+	"fmt"
+	"net/http"
 	"os"
 	"sync"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 type config struct {
@@ -47,11 +50,10 @@ type application struct {
 func main() {
 	var cfg config
 
-	flag.IntVar(&cfg.port, "port", 4000, "API server port")
+	flag.IntVar(&cfg.port, "port", 5432, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
-	// $env:DSN="postgres://postgres:elaman(2004)@@localhost:5432/nexusnet?sslmode=disable"
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:elaman(2004)@@localhost/nexusnet?sslmode=disable", "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:elaman(2004)@@localhost/greenlight", "PostgreSQL DSN")
 
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
@@ -83,7 +85,17 @@ func main() {
 		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
-	err = app.serve()
+	srv := &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.port),
+		Handler:      app.routes(),
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+	}
+
+	logger.Print("starting %s server on %s", cfg.env, srv.Addr)
+
+	err = srv.ListenAndServe()
 	if err != nil {
 		logger.PrintFatal(err, nil)
 	}

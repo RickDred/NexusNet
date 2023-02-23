@@ -6,8 +6,9 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"errors"
-	"golang.org/x/crypto/bcrypt"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
