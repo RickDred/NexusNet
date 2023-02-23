@@ -3,6 +3,7 @@ package main
 import (
 	"NexusNet/internal/data"
 	"NexusNet/internal/validator"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -76,6 +77,108 @@ func (app *application) listPostsHandler(w http.ResponseWriter, r *http.Request)
 	}
 	// Send a JSON response containing the movie data.
 	err = app.writeJSON(w, http.StatusOK, envelope{"posts": posts}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) showPostHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+	}
+
+	post, err := app.models.Posts.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	// Encode the struct to JSON and send it as the HTTP response.
+	// using envelope
+	err = app.writeJSON(w, http.StatusOK, envelope{"post": post}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// TO-DO: Erase existing data by id
+func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	err = app.models.Posts.Delete(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": "post successfully deleted"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+}
+
+func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	// Retrieve the movie record as normal.
+	post, err := app.models.Posts.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	// Use pointers for the Title, Year and Runtime fields.
+	var input struct {
+		Title       *string `json:"title"`
+		Description *string `json:"description"`
+	}
+	// Decode the JSON as normal.
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if input.Title != nil {
+		post.Title = *input.Title
+	}
+	// We also do the same for the other fields in the input struct.
+	if input.Description != nil {
+		post.Description = *input.Description
+	}
+	//v := validator.New()
+	//if data.ValidatePost(v, movie); !v.Valid() {
+	//	app.failedValidationResponse(w, r, v.Errors)
+	//	return
+	//}
+	err = app.models.Posts.Update(post)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"post": post}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

@@ -15,9 +15,14 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/signup", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/users/activated", app.activateUserHandler)
+	router.HandlerFunc(http.MethodPost, "/login", app.authenticationUserHandler)
+	router.HandlerFunc(http.MethodGet, "/users/:id", app.showUserHandler)
 
 	router.HandlerFunc(http.MethodGet, "/posts", app.listPostsHandler)
-	router.HandlerFunc(http.MethodPost, "/posts/create", app.createPostHandler)
+	router.HandlerFunc(http.MethodPost, "/posts/create", app.requireAuthenticateUser(app.createPostHandler))
+	router.HandlerFunc(http.MethodPatch, "/posts/:id", app.requireAuthenticateUser(app.updatePostHandler))
+	router.HandlerFunc(http.MethodDelete, "/posts/:id", app.requireAuthenticateUser(app.deletePostHandler))
+	router.HandlerFunc(http.MethodGet, "/posts/:id", app.showPostHandler)
 
 	return app.recoverPanic(app.rateLimit(router))
 }

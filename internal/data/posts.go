@@ -10,7 +10,7 @@ import (
 
 type Post struct {
 	ID          int64     `json:"id"`
-	CreatedAt   time.Time `json:"-,omitempty"`
+	CreatedAt   time.Time `json:"created_at,omitempty"`
 	Title       string    `json:"title,omitempty"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	Description string    `json:"description"`
@@ -94,12 +94,11 @@ func (p PostModel) GetAll(title string, authorID int, authorName string, filters
 	// (filtered) records.
 	// (filtered) records.
 	query := fmt.Sprintf(`
-		SELECT id, created_at, title, description, author_id, updated_at
-		FROM posts
-		NATURAL JOIN users
-		WHERE (LOWER(title) = LOWER($1) OR $1 = '')
-		AND ((users.id) = ($2) OR $2 = 0)
-		AND (LOWER(users.name) = LOWER($3) OR $3 = '')
+		SELECT p.id, p.created_at, p.title, p.description, p.author_id, p.updated_at
+		FROM posts p, users u
+		WHERE (LOWER(p.title) = LOWER($1) OR $1 = '')
+		AND ((u.id) = ($2) OR $2 = 0)
+		AND (LOWER(u.name) = LOWER($3) OR $3 = '')
 		ORDER BY %s %s, id ASC
 		LIMIT $4 OFFSET $5`, filters.sortColumn(), filters.sortDirection())
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -136,4 +135,32 @@ func (p PostModel) GetAll(title string, authorID int, authorName string, filters
 	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 	// Include the metadata struct when returning.
 	return posts, metadata, nil
+}
+
+func (p PostModel) Update(post *Post) error {
+	query := `
+	UPDATE posts
+	SET title = $1, description = $2, updated_at = NOW()
+	WHERE id = $3
+	RETURNING created_at, author_id, id`
+	args := []any{
+		post.Title,
+		post.Description,
+		post.ID,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	err := p.DB.QueryRowContext(ctx, query, args...).Scan(&post.ID)
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+			return ErrDuplicateEmail
+
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+	return nil
 }

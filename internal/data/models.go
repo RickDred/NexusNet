@@ -25,6 +25,6 @@ func NewModels(db *sql.DB) Models {
 	return Models{
 		Users:  UserModel{DB: db},
 		Posts:  PostModel{DB: db},
-		Tokens: TokenModel{DB: db}, // new TokenModel initilization
+		Tokens: TokenModel{DB: db},
 	}
 }

@@ -3,22 +3,46 @@ package main
 import (
 	"NexusNet/internal/data"
 	"NexusNet/internal/validator"
+	"errors"
 	"fmt"
+	"golang.org/x/time/rate"
 	"net"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
-
-	"golang.org/x/time/rate"
 )
 
-func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
+func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Use the contextGetUser() helper that we made earlier to retrieve the user
-		// information from the request context.
-		// Retrieve the value of the Authorization header from the request. This will
-		// return the empty string "" if there is no such header found.
+		user := app.contextGetUser(r)
+		if user.IsAnonymous() {
+			app.authenticationRequiredResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Checks that a user is both authenticated and activated.
+func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
+	// Rather than returning this http.HandlerFunc we assign it to the variable fn.
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+		// Check that a user is activated.
+		if !user.Activated {
+			app.inactiveAccountResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+	// Wrap fn with the requireAuthenticatedUser() middleware before returning it.
+	return app.requireAuthenticatedUser(fn)
+}
+
+func (app *application) requireAuthenticateUser(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		authorizationHeader := r.Header.Get("Authorization")
 
 		headerParts := strings.Split(authorizationHeader, " ")
@@ -31,21 +55,13 @@ func (app *application) requireActivatedUser(next http.HandlerFunc) http.Handler
 			app.serverErrorResponse(w, r, err)
 			return
 		}
-		// If the user is anonymous, then call the authenticationRequiredResponse() to
-		// inform the client that they should authenticate before trying again.
-		if user.Role != "admin" {
-			return
-		}
-		// If the user is not activated, use the inactiveAccountResponse() helper to
-		// inform them that they need to activate their account.
 
-		// Call the next handler in the chain.
 		next.ServeHTTP(w, r)
 	})
 }
 
-func (app *application) authenticateAdmin(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (app *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Add the "Vary: Authorization" header to the response. This indicates to any
 		// caches that the response may vary based on the value of the Authorization
 		// header in the request.
@@ -58,6 +74,7 @@ func (app *application) authenticateAdmin(next http.HandlerFunc) http.HandlerFun
 		// call the next handler in the chain and return without executing any of the
 		// code below.
 		if authorizationHeader == "" {
+			r = app.contextSetUser(r, data.AnonymousUser)
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -68,6 +85,7 @@ func (app *application) authenticateAdmin(next http.HandlerFunc) http.HandlerFun
 		// in a moment).
 		headerParts := strings.Split(authorizationHeader, " ")
 		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			app.invalidAuthenticationTokenResponse(w, r)
 			return
 		}
 		// Extract the actual authentication token from the header parts.
@@ -78,6 +96,7 @@ func (app *application) authenticateAdmin(next http.HandlerFunc) http.HandlerFun
 		// helper to send a response, rather than the failedValidationResponse() helper
 		// that we'd normally use.
 		if data.ValidateTokenPlaintext(v, token); !v.Valid() {
+			app.invalidAuthenticationTokenResponse(w, r)
 			return
 		}
 		// Retrieve the details of the user associated with the authentication token,
@@ -86,7 +105,12 @@ func (app *application) authenticateAdmin(next http.HandlerFunc) http.HandlerFun
 		// ScopeAuthentication as the first parameter here.
 		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
 		if err != nil {
-			app.serverErrorResponse(w, r, err)
+			switch {
+			case errors.Is(err, data.ErrRecordNotFound):
+				app.invalidAuthenticationTokenResponse(w, r)
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
 			return
 		}
 		// Call the contextSetUser() helper to add the user information to the request
@@ -94,7 +118,7 @@ func (app *application) authenticateAdmin(next http.HandlerFunc) http.HandlerFun
 		r = app.contextSetUser(r, user)
 		// Call the next handler in the chain.
 		next.ServeHTTP(w, r)
-	}
+	})
 }
 
 func (app *application) recoverPanic(next http.Handler) http.Handler {

@@ -7,8 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
-	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -85,17 +83,7 @@ func main() {
 		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
-	}
-
-	logger.Print("starting %s server on %s", cfg.env, srv.Addr)
-
-	err = srv.ListenAndServe()
+	err = app.serve()
 	if err != nil {
 		logger.PrintFatal(err, nil)
 	}

@@ -10,6 +10,11 @@ func (app *application) invalidCredentialsResponse(w http.ResponseWriter, r *htt
 	app.errorResponse(w, r, http.StatusUnauthorized, message)
 }
 
+func (app *application) invalidPassword(w http.ResponseWriter, r *http.Request) {
+	message := "invalid password"
+	app.errorResponse(w, r, http.StatusUnauthorized, message)
+}
+
 // The logError() method is a generic helper for logging an error message.
 func (app *application) logError(r *http.Request, err error) {
 	app.logger.PrintInfo(fmt.Sprintf("The error is %s", err), map[string]string{
