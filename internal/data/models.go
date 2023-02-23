@@ -18,6 +18,7 @@ type Models struct {
 	Users  UserModel
 	Posts  PostModel
 	Tokens TokenModel
+	Story  StoryModel
 }
 
 // NewModels method which returns a Models struct containing the initialized MovieModel.
