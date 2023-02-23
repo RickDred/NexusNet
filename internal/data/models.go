@@ -19,13 +19,17 @@ type Models struct {
 	Posts   PostModel
 	Tokens  TokenModel
 	Stories StoryModel
+	Story   StoryModel
+	Comment CommentModel
 }
 
 // NewModels method which returns a Models struct containing the initialized MovieModel.
 func NewModels(db *sql.DB) Models {
 	return Models{
-		Users:  UserModel{DB: db},
-		Posts:  PostModel{DB: db},
-		Tokens: TokenModel{DB: db},
+		Users:   UserModel{DB: db},
+		Posts:   PostModel{DB: db},
+		Tokens:  TokenModel{DB: db},
+		Story:   StoryModel{DB: db},
+		Comment: CommentModel{DB: db},
 	}
 }

@@ -184,7 +184,7 @@ func (u UserModel) Update(user *User) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	err := u.DB.QueryRowContext(ctx, query, args...).Scan(&user.Name)
+	err := u.DB.QueryRowContext(ctx, query, args...).Scan(&user.CreatedAt)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
@@ -205,7 +205,7 @@ func (u UserModel) Get(id int64) (*User, error) {
 	}
 
 	query := `
-		SELECT *
+		SELECT id, created_at, name, description, role, email, activated
 		FROM users
 		WHERE id = $1`
 
@@ -215,11 +215,11 @@ func (u UserModel) Get(id int64) (*User, error) {
 		&user.ID,
 		&user.CreatedAt,
 		&user.Name,
-		&user.Email,
+		&user.Description,
 		&user.Role,
-		&user.Password.hash,
+		&user.Email,
 		&user.Activated,
-		&user.Description)
+	)
 
 	if err != nil {
 		switch {
