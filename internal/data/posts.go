@@ -89,19 +89,22 @@ func (p PostModel) Delete(id int64) error {
 	return nil
 }
 
-func (p PostModel) GetAll(title string, filters Filters) ([]*Post, Metadata, error) {
+func (p PostModel) GetAll(title string, authorID int, authorName string, filters Filters) ([]*Post, Metadata, error) {
 	// Update the SQL query to include the window function which counts the total
 	// (filtered) records.
 	// (filtered) records.
 	query := fmt.Sprintf(`
 		SELECT id, created_at, title, description, author_id, updated_at
 		FROM posts
+		NATURAL JOIN users
 		WHERE (LOWER(title) = LOWER($1) OR $1 = '')
+		AND ((users.id) = ($2) OR $2 = 0)
+		AND (LOWER(users.name) = LOWER($3) OR $3 = '')
 		ORDER BY %s %s, id ASC
-		LIMIT $2 OFFSET $3`, filters.sortColumn(), filters.sortDirection())
+		LIMIT $4 OFFSET $5`, filters.sortColumn(), filters.sortDirection())
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	args := []any{title, filters.limit(), filters.offset()}
+	args := []any{title, authorID, authorName, filters.limit(), filters.offset()}
 	rows, err := p.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, Metadata{}, err // Update this to return an empty Metadata struct.

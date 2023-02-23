@@ -51,7 +51,7 @@ func ValidateFilters(v *validator.Validator, f Filters) {
 	v.Check(validator.PermittedValue(f.Sort, f.SortSafelist...), "sort", "invalid sort value")
 }
 
-// Define a new Metadata struct for holding the pagination metadata.
+// Metadata struct for holding the pagination metadata.
 type Metadata struct {
 	CurrentPage  int `json:"current_page,omitempty"`
 	PageSize     int `json:"page_size,omitempty"`
