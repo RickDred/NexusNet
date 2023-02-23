@@ -14,14 +14,14 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/healthcheck", app.healthcheckHandler)
 
 	router.HandlerFunc(http.MethodPost, "/signup", app.registerUserHandler)
-	router.HandlerFunc(http.MethodPut, "/users/activated", app.activateUserHandler)
+	router.HandlerFunc(http.MethodPost, "/users/activated", app.activateUserHandler)
 	router.HandlerFunc(http.MethodPost, "/login", app.authenticationUserHandler)
 	router.HandlerFunc(http.MethodGet, "/users/:id", app.showUserHandler)
 
 	router.HandlerFunc(http.MethodGet, "/posts", app.listPostsHandler)
-	router.HandlerFunc(http.MethodPost, "/posts/create", app.requireAuthenticatedUser(app.createPostHandler))
-	router.HandlerFunc(http.MethodPatch, "/posts/:id", app.requireAuthenticatedUser(app.updatePostHandler))
-	router.HandlerFunc(http.MethodDelete, "/posts/:id", app.requireAuthenticatedUser(app.deletePostHandler))
+	router.HandlerFunc(http.MethodPost, "/posts/create", app.requireActivatedUser(app.createPostHandler))
+	router.HandlerFunc(http.MethodPatch, "/posts/:id", app.requireActivatedUser(app.updatePostHandler))
+	router.HandlerFunc(http.MethodDelete, "/posts/:id", app.requireActivatedUser(app.deletePostHandler))
 	router.HandlerFunc(http.MethodGet, "/posts/:id", app.showPostHandler)
 
 	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
