@@ -40,26 +40,6 @@ func (app *application) requireActivatedUser(next http.HandlerFunc) http.Handler
 	return app.requireAuthenticatedUser(fn)
 }
 
-func (app *application) requireAuthenticateUser(next http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		authorizationHeader := r.Header.Get("Authorization")
-
-		headerParts := strings.Split(authorizationHeader, " ")
-		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-			return
-		}
-
-		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, headerParts[1])
-		if err != nil {
-			app.serverErrorResponse(w, r, err)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 func (app *application) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Add the "Vary: Authorization" header to the response. This indicates to any
