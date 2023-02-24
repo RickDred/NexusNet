@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -189,19 +188,20 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	return i
 }
 
-func (app *application) createFile(data []byte, filepath string) {
+func (app *application) createFile(data []byte, filepath string) error {
 	err := ioutil.WriteFile(filepath, data, 0777)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
+	return nil
 }
 
-func (app *application) readFile(filepath string) string {
+func (app *application) readFile(filepath string) (string, error) {
 
 	data, err := ioutil.ReadFile(filepath)
 	if err != nil {
-		log.Println(err)
+		return "", err
 	}
 
-	return string(data)
+	return string(data), nil
 }

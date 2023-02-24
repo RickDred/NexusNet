@@ -39,6 +39,9 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/direct/:id", app.requireActivatedUser(app.writeMessageHandler))
 	router.HandlerFunc(http.MethodPost, "/directs/:id", app.requireActivatedUser(app.createDirectHandler))
 
+	router.HandlerFunc(http.MethodPost, "/files", app.requireActivatedUser(app.createFileHandler))
+	router.HandlerFunc(http.MethodGet, "/files", app.requireActivatedUser(app.readFileHandler))
+
 	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
 }
 
