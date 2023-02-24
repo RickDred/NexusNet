@@ -26,16 +26,11 @@ type User struct {
 	Password    password  `json:"-"`
 	Activated   bool      `json:"activated"`
 	Description string    `json:"description"`
-	Feel        feel      `json:"feel"`
+	Feel        Feel      `json:"feel"`
 }
 
 func (u *User) IsAnonymous() bool {
 	return u == AnonymousUser
-}
-
-type feel struct {
-	Mood      string    `json:"mood"`
-	CreatedAt time.Time `jsom:"created_at"`
 }
 
 type UserModel struct {
@@ -127,6 +122,7 @@ func (u UserModel) Insert(user *User) error {
 			return err
 		}
 	}
+
 	return nil
 }
 

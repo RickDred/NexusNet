@@ -77,7 +77,7 @@ func (app *application) listPostsHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// Send a JSON response containing the movie data.
-	err = app.writeJSON(w, http.StatusOK, envelope{"posts": posts}, nil)
+	err = app.writeJSON(w, http.StatusOK, posts, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
