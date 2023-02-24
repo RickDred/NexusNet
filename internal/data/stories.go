@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"os"
 	"time"
 )
 
@@ -13,6 +14,7 @@ type Story struct {
 	AuthorID  int64     `json:"author_id"`
 	Visible   bool      `json:"visible"`
 	Content   string    `json:"content"`
+	Image     os.File   `json:"image"`
 }
 type StoryModel struct {
 	DB *sql.DB

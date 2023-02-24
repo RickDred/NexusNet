@@ -17,7 +17,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/signup", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPost, "/users/activated", app.activateUserHandler)
 	router.HandlerFunc(http.MethodPost, "/login", app.authenticationUserHandler)
-	router.HandlerFunc(http.MethodGet, "/users/:id", app.showProfileHandler)
+	router.HandlerFunc(http.MethodGet, "/users/:id", app.showUserHandler)
 
 	router.HandlerFunc(http.MethodGet, "/", app.listPostsHandler)
 	router.HandlerFunc(http.MethodPost, "/posts/create", app.requireActivatedUser(app.createPostHandler))
