@@ -16,8 +16,9 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	var input struct {
 		Title       string `json:"title"`
 		Description string `json:"description"`
-		AuthorID    int64  `json:"author_id"`
 	}
+
+	user := app.contextGetUser(r)
 
 	// if there is error with decoding, we are sending corresponding message
 	err := app.readJSON(w, r, &input) //non-nil pointer as the target decode destination
@@ -28,7 +29,7 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	post := &data.Post{
 		Title:       input.Title,
 		Description: input.Description,
-		AuthorID:    input.AuthorID,
+		AuthorID:    user.ID,
 	}
 
 	err = app.models.Posts.Insert(post)
@@ -180,11 +181,7 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 	if input.Description != nil {
 		post.Description = *input.Description
 	}
-	//v := validator.New()
-	//if data.ValidatePost(v, movie); !v.Valid() {
-	//	app.failedValidationResponse(w, r, v.Errors)
-	//	return
-	//}
+
 	err = app.models.Posts.Update(post)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

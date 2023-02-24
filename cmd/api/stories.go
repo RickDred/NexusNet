@@ -2,7 +2,6 @@ package main
 
 import (
 	"NexusNet/internal/data"
-	"NexusNet/internal/validator"
 	"errors"
 	"fmt"
 	"net/http"
@@ -18,10 +17,6 @@ func (app *application) createStoryHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	user := app.contextGetUser(r)
-	if user.IsAnonymous() {
-		app.authenticationRequiredResponse(w, r)
-		return
-	}
 
 	// if there is error with decoding, we are sending corresponding message
 	err := app.readJSON(w, r, &input) //non-nil pointer as the target decode destination
@@ -50,16 +45,13 @@ func (app *application) createStoryHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *application) listUserStoriesHandler(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		AuthorID int
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
 	}
 
-	v := validator.New()
-	qs := r.URL.Query()
-
-	input.AuthorID = app.readInt(qs, "author_id", 0, v)
-
-	stories, err := app.models.Stories.GetAllFromUser(input.AuthorID)
+	stories, err := app.models.Stories.GetAllFromUser(int(id))
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -71,7 +63,7 @@ func (app *application) listUserStoriesHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (app *application) showStoryHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readStoryIDParam(r)
+	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 	}
@@ -95,7 +87,7 @@ func (app *application) showStoryHandler(w http.ResponseWriter, r *http.Request)
 }
 
 // TO-DO: Erase existing data by id
-func (app *application) deleteStorieHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) deleteStoryHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)

@@ -26,7 +26,7 @@ func (m CommentModel) Insert(comment *Comment) error {
 		VALUES (NOW(), NOW(), $1, $2, $3)
 		RETURNING id`
 
-	return m.DB.QueryRow(query, &comment.AuthorID, &comment.PostID, &comment.Content).Scan(&comment.ID, &comment.CreatedAt, &comment.UpdatedAt)
+	return m.DB.QueryRow(query, &comment.AuthorID, &comment.PostID, &comment.Content).Scan(&comment.ID)
 }
 
 func (c CommentModel) Delete(id int64) error {
@@ -79,17 +79,50 @@ func (c CommentModel) Update(comment *Comment) error {
 	return nil
 }
 
-func (c CommentModel) GetAllFromUser(authorID int) ([]*Comment, error) {
+func (c CommentModel) Get(id int64) (*Comment, error) {
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+
 	query := `
-		SELECT id, created_at, author_id, content
+		SELECT id, author_id, post_id, content, created_at, updated_at
 		FROM comments
-		WHERE author_id = $1
+		WHERE id = $1`
+
+	var comment Comment
+
+	err := c.DB.QueryRow(query, id).Scan(
+		&comment.ID,
+		&comment.CreatedAt,
+		&comment.PostID,
+		&comment.Content,
+		&comment.UpdatedAt,
+		&comment.AuthorID,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &comment, nil
+}
+
+func (c CommentModel) GetAllFromPost(postID int) ([]*Comment, error) {
+	query := `
+		SELECT id, created_at, author_id, content, post_id, updated_at
+		FROM comments
+		WHERE post_id = $1
 		ORDER BY created_at`
 	// Create a context with a 3-second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := c.DB.QueryContext(ctx, query, authorID)
+	rows, err := c.DB.QueryContext(ctx, query, postID)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +138,8 @@ func (c CommentModel) GetAllFromUser(authorID int) ([]*Comment, error) {
 			&comment.CreatedAt,
 			&comment.AuthorID,
 			&comment.Content,
+			&comment.PostID,
+			&comment.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err

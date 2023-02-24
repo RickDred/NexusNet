@@ -8,6 +8,44 @@ import (
 	"time"
 )
 
+func (app *application) showProfileHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+	}
+
+	user, err := app.models.Users.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	posts, err := app.models.Posts.GetAllFromUser(int(user.ID))
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	stories, err := app.models.Stories.GetAllFromUser(int(user.ID))
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusAccepted, envelope{
+		"user":    user,
+		"posts":   posts,
+		"stories": stories,
+	}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
 func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Create an anonymous struct to hold the expected data from the request body.
 	var input struct {

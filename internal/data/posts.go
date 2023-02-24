@@ -46,8 +46,8 @@ func (p PostModel) Get(id int64) (*Post, error) {
 		&post.ID,
 		&post.CreatedAt,
 		&post.Title,
-		&post.Description,
 		&post.UpdatedAt,
+		&post.Description,
 		&post.AuthorID,
 	)
 
@@ -140,9 +140,9 @@ func (p PostModel) GetAll(title string, authorID int, authorName string, filters
 func (p PostModel) Update(post *Post) error {
 	query := `
 	UPDATE posts
-	SET title = $1, description = $2, updated_at = NOW()
+	SET updated_at = NOW(), title = $1, description = $2
 	WHERE id = $3
-	RETURNING created_at, author_id, id`
+	RETURNING created_at, updated_at, author_id`
 	args := []any{
 		post.Title,
 		post.Description,
@@ -150,7 +150,7 @@ func (p PostModel) Update(post *Post) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	err := p.DB.QueryRowContext(ctx, query, args...).Scan(&post.ID)
+	err := p.DB.QueryRowContext(ctx, query, args...).Scan(&post.CreatedAt, &post.UpdatedAt, &post.AuthorID)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
@@ -163,4 +163,45 @@ func (p PostModel) Update(post *Post) error {
 		}
 	}
 	return nil
+}
+
+func (p PostModel) GetAllFromUser(authorID int) ([]*Post, error) {
+	query := `
+		SELECT id, created_at, author_id, title, updated_at, description
+		FROM posts
+		WHERE author_id = $1
+		ORDER BY created_at`
+	// Create a context with a 3-second timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := p.DB.QueryContext(ctx, query, authorID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var posts []*Post
+
+	for rows.Next() {
+		var post Post
+		err := rows.Scan(
+			&post.ID,
+			&post.CreatedAt,
+			&post.AuthorID,
+			&post.Title,
+			&post.UpdatedAt,
+			&post.Description,
+		)
+		if err != nil {
+			return nil, err
+		}
+		posts = append(posts, &post)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }
