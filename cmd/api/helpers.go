@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
@@ -190,19 +189,11 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	return i
 }
 
-func (app *application) createFile(data string, fileName string) {
-	file, err := os.Create(fileName)
+func (app *application) createFile(data []byte, filepath string) {
+	err := ioutil.WriteFile(filepath, data, 0777)
 	if err != nil {
-		log.Fatalf("failed creating file: %s", err)
+		fmt.Println(err)
 	}
-
-	defer file.Close()
-
-	_, err = file.WriteString(data)
-	if err != nil {
-		log.Fatalf("failed writing to file: %s", err)
-	}
-	return
 }
 
 func (app *application) readFile(filepath string) string {

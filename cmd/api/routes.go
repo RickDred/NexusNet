@@ -25,7 +25,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodDelete, "/posts/:id", app.requireActivatedUser(app.deletePostHandler))
 	router.HandlerFunc(http.MethodGet, "/posts/:id", app.showPostHandler)
 
-	router.HandlerFunc(http.MethodGet, "/stories/:id", app.requireActivatedUser(app.showStoryHandler))
+	router.HandlerFunc(http.MethodGet, "/stories/:id", app.requireActivatedUser(app.acceptForAdmin(app.showStoryHandler)))
 	router.HandlerFunc(http.MethodGet, "/users/:id/stories", app.requireActivatedUser(app.listUserStoriesHandler))
 	router.HandlerFunc(http.MethodDelete, "/stories/:id", app.requireActivatedUser(app.deleteStoryHandler))
 	router.HandlerFunc(http.MethodPost, "/stories", app.requireActivatedUser(app.createStoryHandler))

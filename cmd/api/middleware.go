@@ -13,6 +13,16 @@ import (
 	"time"
 )
 
+func (app *application) acceptForAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+		if user.Role != "admin" {
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := app.contextGetUser(r)
