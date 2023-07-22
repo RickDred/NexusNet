@@ -3,12 +3,19 @@
 Rest Api
 
 ## Description
+
 Social media rest api with user registration/authorisation.
 Authenticated user can create posts, delete own posts, get specific posts, and the seim manipulations with stories.
 Signed users can comment posts and stories.
 Each user can see all posts, user can sort them or search with filters.
 Also, users can message each other.
 
+## Technologies 
+
+Language: Go
+Frontend: not present
+Database: PostrgeSql
+Other: JSON, SMTP, HTTP
 
 ## API Reference
 
@@ -40,5 +47,3 @@ Get, "/direct"
 Post, "/direct/:id"
 Post, "/directs/:id"
 ```
-
-
